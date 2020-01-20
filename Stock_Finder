@@ -1,0 +1,52 @@
+def lookup_quotes(*symbols):
+	from urllib.request import urlopen as uReq
+	from bs4 import BeautifulSoup as interpret
+
+	filename = "yahoo_stocks.txt"
+	f = open(filename, "w")
+	headers = "Ticker, Name, Previous Close, Open, Bid, Ask, Day's Range, 52 Week Range, Volume, Avg. Volume, Market Cap, Beta (5Y Monthly), PE Ratio (TTM), EPS (TTM), Earnings Date, Forward Dividend & Yield, Ex-Dividend Date, 1y Target Est\n"
+	f.write(headers)
+
+	for i in symbols:
+		try:
+			
+			my_url = "https://finance.yahoo.com/quote/"+i
+
+			#Opening connection and grabing page
+			uClient = uReq(my_url)
+			page_html = uClient.read()
+			uClient.close()
+
+			#html parser 
+			page_soup = interpret(page_html, "html.parser")
+
+			if page_soup.findAll("span",{"data-reactid":"6"})[0].text[:4] == "Symb":
+				print(i + " Does not exist.")
+			else:
+				#sets name info to entire header
+				name_info = page_soup.findAll("div",{"id":"quote-header-info"})[0]
+				ticker = name_info.h1.text.split("-",1)[0]
+				stock_name = name_info.h1.text.split("-",1)[1][1:].replace(",", "")
+
+				Big_Table = page_soup.findAll("div",{"id":"quote-summary"})[0]
+				Values = Big_Table.findAll("td",{"class":"Ta(end) Fw(600) Lh(14px)"})
+				Tags = Big_Table.findAll("td",{"class":"C($primaryColor) W(51%)"})
+
+				print("Ticker: "+ ticker)
+				print("Name: "+ stock_name)
+
+				f.write(ticker + "," + stock_name + ",")
+				for i in range(len(Values)):
+					print(str(Tags[i].text) + ": "+ Values[i].text)
+					if i == len(Values)-1:
+						f.write(str(Values[i].text.replace(",", "")))
+					else:
+						f.write(str(Values[i].text.replace(",", "")) + ",")
+				f.write("\n")
+				print("")
+		except:
+			print(i  + " Error")
+			print("")
+	f.close()
+
+lookup_quotes("AXSM", "APLT", "CDLX", "KOD")
